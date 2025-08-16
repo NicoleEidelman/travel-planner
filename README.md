@@ -9,7 +9,7 @@ A modern, AI‑assisted trip‑planning web app that builds realistic hiking and
 * **AI Trip Teaser (optional):** Groq model crafts a concise intro for each trip.
 * **Real Routes:** OpenRouteService (ORS) for bike/trek directions over real roads & trails.
 * **Interactive Maps:** Leaflet.js for smooth route visualization.
-* **Weather:** Open‑Meteo 3‑day forecast starting.
+* **Weather:** Open‑Meteo 3‑day forecast.
 * **Auth:** Secure registration & login.
 * **Trip History:** Save trips and revisit them later.
 * **Clean UI:** Card‑based, responsive layout.
@@ -65,12 +65,6 @@ travel-planner/
 * Groq API key (optional, for AI teaser)
 
 ---
-
-## 🔑 Environment Variables
-
-You will have **two** `.env` files—one for the server (private) and one for the client (public, non‑secrets only).
-
-### `server/.env` (private — do **not** commit)
 
 # Environment Variables (.env)
 
