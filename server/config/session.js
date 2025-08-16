@@ -1,6 +1,7 @@
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
 
+// Create and configure the session middleware for Express using MongoDB
 export function sessionMiddleware({ mongoUrl, secret }) {
   return session({
     secret,

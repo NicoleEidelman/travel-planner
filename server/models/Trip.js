@@ -2,8 +2,10 @@ import mongoose from 'mongoose';
 
 // This file defines the Trip model for the Travel Planner MVP application.
 
+// Schema for a coordinate (latitude, longitude)
 const Coord = new mongoose.Schema({ lat: Number, lon: Number }, { _id: false });
 
+// Main Trip schema for storing trip details in MongoDB
 const TripSchema = new mongoose.Schema({
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true, required: true },
   name: { type: String, required: true, trim: true },
@@ -20,4 +22,5 @@ const TripSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// Export the Trip model for use in the app
 export default mongoose.model('Trip', TripSchema);

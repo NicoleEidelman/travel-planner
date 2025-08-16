@@ -13,6 +13,7 @@ const router = express.Router();
 const isHexId = (s) => /^[0-9a-fA-F]{24}$/.test(String(s || ''));
 
 /* ---------------- helpers ---------------- */
+// Build a short narrative/teaser for a trip based on city, type, and distances
 function buildNarrative(city, type, days) {
   if (type === 'bike') {
     const d1 = Math.round(days[0] || 0);
@@ -27,6 +28,7 @@ function buildNarrative(city, type, days) {
 /* ---------------- plan routes ---------------- */
 
 // POST /api/trips/plan  { city, type: 'bike'|'trek' }
+// Plan a new trip route (POST /api/trips/plan)
 router.post('/plan', authRequired, async (req, res) => {
   try {
     const { city, type } = await planSchema.validateAsync(req.body);
@@ -57,12 +59,14 @@ router.post('/plan', authRequired, async (req, res) => {
 });
 
 // Guard: if someone accidentally GETs /plan, don't fall into /:id
+// Guard: Prevent accidental GET on /plan (should be POST)
 router.get('/plan', authRequired, (_req, res) => {
   res.status(405).json({ message: 'Use POST /api/trips/plan' });
 });
 
 /* ---------------- optional AI narrative ---------------- */
 
+// Generate an AI-powered narrative for a trip (POST /api/trips/ai/narrative)
 router.post('/ai/narrative', authRequired, async (req, res) => {
   try {
     const { city, type, dayDistances } = req.body;
@@ -124,6 +128,7 @@ Write a lively, concise teaser (max ~120 words). Mention the city; do not use co
 /* ---------------- persistence ---------------- */
 
 // POST /api/trips/save — persist a planned trip (without weather)
+// Save a planned trip to the database (POST /api/trips/save)
 router.post('/save', authRequired, async (req, res) => {
   try {
     const payload = await saveTripSchema.validateAsync(req.body);
@@ -135,6 +140,7 @@ router.post('/save', authRequired, async (req, res) => {
 });
 
 // GET /api/trips — list my trips
+// List all trips for the logged-in user (GET /api/trips)
 router.get('/', authRequired, async (req, res) => {
   const list = await Trip.find({ owner: req.session.user.id })
     .sort({ createdAt: -1 })
@@ -148,6 +154,7 @@ router.get('/', authRequired, async (req, res) => {
 });
 
 // GET /api/trips/:id — validate first, then query
+// Get a specific trip by ID for the logged-in user (GET /api/trips/:id)
 router.get('/:id', authRequired, async (req, res) => {
   const { id } = req.params;
 

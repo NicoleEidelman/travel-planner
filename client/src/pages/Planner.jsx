@@ -36,6 +36,7 @@ export default function Planner({ user }) {
   const featuresGroup = useRef(null);
 
   // ---------------- Helpers ----------------
+  // Show a toast notification (success, warning, error)
   const showToast = (message, type = 'success') => {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
@@ -62,10 +63,12 @@ export default function Planner({ user }) {
     }, 3500);
   };
 
+  // Remove HTML tags and trim text to a max length (default 400 chars)
   const clipText = (str = '', max = 400) =>
     String(str).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
 
   // server ➜ UI shape
+  // Convert server trip data to UI-friendly plan object
   function toUiPlan(serverData, uiType) {
     const type = uiType === 'hiking' ? 'trek' : 'bike';
     const coords = serverData.coords || [];
@@ -91,6 +94,7 @@ export default function Planner({ user }) {
     return { city: serverData.city, type, plan: serverData.narrative || '', days, weather: { forecast }, _raw: serverData };
   }
 
+  // Try to fetch a cover image for the trip (from API or Unsplash fallback)
   const tryFetchCover = useCallback(async (q) => {
     const query = (q || plan?._raw?.label || plan?.city || city || '').trim();
     if (!query) return;
@@ -102,6 +106,7 @@ export default function Planner({ user }) {
   }, [city, plan]);
 
   // Build payload strictly to schema expected by /trips/save
+  // Prepare and sanitize the trip payload for saving to the backend
   const sanitizeForSave = (planObj, cityStr) => {
     const description = clipText(planObj?.plan || planObj?._raw?.placeDescription || '', 400);
     const dayDistances = (
@@ -124,6 +129,7 @@ export default function Planner({ user }) {
   };
 
   // ---------------- Map ----------------
+  // Initialize the Leaflet map and features group
   useEffect(() => {
     if (!map.current && mapRef.current) {
       map.current = L.map(mapRef.current, { zoomControl: false }).setView([31.7683, 35.2137], 8);
@@ -136,6 +142,7 @@ export default function Planner({ user }) {
     return () => { if (map.current) { map.current.remove(); map.current = null; } };
   }, []);
 
+  // Draw the trip route and days on the map
   const drawPlan = useCallback((uiPlan) => {
     if (!featuresGroup.current || !map.current) return;
     featuresGroup.current.clearLayers();
@@ -157,6 +164,7 @@ export default function Planner({ user }) {
   }, []);
 
   // preload trip if navigated with savedTrip
+  // Preload a trip if navigated here with a saved trip (from History)
   useEffect(() => {
     if (!savedTripFromState) return;
     setCity(savedTripFromState.destinations?.[0]?.location || '');
@@ -172,6 +180,7 @@ export default function Planner({ user }) {
   }, [savedTripFromState, drawPlan, tryFetchCover]);
 
   // ---------------- Actions ----------------
+  // Generate a new trip plan by calling the backend and updating state
   const generateTrip = async () => {
     if (!user) { showToast('Please login first', 'warning'); return; }
     if (!city.trim()) { showToast('Please enter a city or country', 'warning'); return; }
@@ -198,6 +207,7 @@ export default function Planner({ user }) {
     } finally { setIsLoading(false); }
   };
 
+  // Save the current trip to the backend (with validation and error handling)
   const saveTrip = async () => {
     if (!plan) { showToast('No route to save', 'warning'); return; }
     setIsSaving(true);
@@ -217,12 +227,14 @@ export default function Planner({ user }) {
     } finally { setIsSaving(false); }
   };
 
+  // Calculate the total distance (km) for the trip
   const totalKm = useMemo(
     () => (plan?.days || []).reduce((s, d) => s + Number(d.distanceKm || 0), 0).toFixed(1),
     [plan]
   );
 
   // lat/lon מנקודת ההתחלה (תומך גם ב-[lon,lat])
+  // Get the starting latitude/longitude from the trip plan
   const startLL = useMemo(() => {
     const p = plan?._raw?.coords?.[0];
     if (!Array.isArray(p) || p.length < 2) return null;

@@ -1,21 +1,25 @@
 import Joi from 'joi';
 
+// Joi schema for user registration validation
 export const registerSchema = Joi.object({
   name: Joi.string().min(2).max(60).required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(6).max(128).required()
 });
 
+// Joi schema for user login validation
 export const loginSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required()
 });
 
+// Joi schema for trip planning request validation
 export const planSchema = Joi.object({
   city: Joi.string().min(2).required(),
   type: Joi.string().valid('bike','trek').required()
 });
 
+// Joi schema for saving a trip validation
 export const saveTripSchema = Joi.object({
   name: Joi.string().min(2).max(80).required(),
   description: Joi.string().allow('').max(400).default(''),
@@ -30,6 +34,7 @@ export const saveTripSchema = Joi.object({
   placeDescription: Joi.string().allow('').max(800).default('')
 });
 
+// Joi schema for validating a trip ID
 export const tripIdSchema = Joi.object({
   tripId: Joi.string().length(24).hex().required()
 });

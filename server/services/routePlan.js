@@ -5,10 +5,22 @@ const ORS_BASE = 'https://api.openrouteservice.org/v2';
 const PROFILE = { bike: 'cycling-regular', trek: 'foot-hiking' };
 const MAX_PER_DAY_KM = { bike: 60, trek: 15 };
 
-/* ---------- geo helpers ---------- */
+
+// ---------- geo helpers ----------
+
+/**
+ * Converts degrees to radians.
+ */
 function toRad(d) { return (d * Math.PI) / 180; }
+
+/**
+ * Converts radians to degrees.
+ */
 function toDeg(r) { return (r * 180) / Math.PI; }
 
+/**
+ * Calculates the great-circle distance (in km) between two [lon,lat] points using the haversine formula.
+ */
 function haversineKm(a, b) {
   const [lon1, lat1] = a, [lon2, lat2] = b;
   const R = 6371;
@@ -19,13 +31,19 @@ function haversineKm(a, b) {
   return 2 * R * Math.asin(Math.sqrt(x));
 }
 
+/**
+ * Computes the total distance (in km) for a list of [lon,lat] coordinates.
+ */
 function totalDistanceKm(coords) {
   let s = 0;
   for (let i = 1; i < coords.length; i++) s += haversineKm(coords[i-1], coords[i]);
   return s;
 }
 
-// Destination point given start [lon,lat], distanceKm and bearingDeg
+/**
+ * Calculates a destination point given a start [lon,lat], distance in km, and bearing in degrees.
+ * Used to generate candidate endpoints for route planning.
+ */
 function destinationPoint([lon, lat], distanceKm, bearingDeg) {
   const R = 6371;
   const δ = distanceKm / R;
@@ -47,6 +65,10 @@ function destinationPoint([lon, lat], distanceKm, bearingDeg) {
 }
 
 /* ---------- ORS helpers ---------- */
+/**
+ * Finds the nearest routable point for a given profile and coordinates, searching with increasing radii.
+ * Used to snap start/end points to the nearest road or trail.
+ */
 async function getRoutablePoint(profile, lon, lat, radii = [500, 1000, 2000, 5000, 10000]) {
   for (const r of radii) {
     try {
@@ -64,6 +86,10 @@ async function getRoutablePoint(profile, lon, lat, radii = [500, 1000, 2000, 500
   return null;
 }
 
+/**
+ * Attempts to get a route between coordinates using OpenRouteService directions API.
+ * Returns route coordinates and total distance if successful.
+ */
 async function tryDirections(profile, coordinates) {
   const res = await fetch(`${ORS_BASE}/directions/${profile}/geojson`, {
     method: 'POST',
@@ -79,6 +105,10 @@ async function tryDirections(profile, coordinates) {
   return { okFlag: coords.length > 1, coords, km: totalDistanceKm(coords) };
 }
 
+/**
+ * Attempts to generate a round-trip route of a given length using OpenRouteService.
+ * Used as a fallback if point-to-point routing fails.
+ */
 async function tryRoundTrip(profile, startLon, startLat, meters, seed) {
   const res = await fetch(`${ORS_BASE}/directions/${profile}/geojson`, {
     method: 'POST',
@@ -96,8 +126,11 @@ async function tryRoundTrip(profile, startLon, startLat, meters, seed) {
 }
 
 /* ---------- day split helpers ---------- */
+/**
+ * Computes the split of total distance into two days for bike trips, capping at 60km per day.
+ * Returns null if the split is not feasible.
+ */
 function computeDayDistancesTwoDays(totalKm) {
-  // Make sure each day ≤ 60 km, but don’t fail for “short” totals.
   const cappedTotal = Math.min(totalKm, MAX_PER_DAY_KM.bike * 2);
   let d1 = Math.min(cappedTotal / 2, MAX_PER_DAY_KM.bike);
   let d2 = Math.min(cappedTotal - d1, MAX_PER_DAY_KM.bike);
@@ -106,6 +139,14 @@ function computeDayDistancesTwoDays(totalKm) {
 }
 
 /* ---------- BIKE: city → city (2 days, ≤60/day) ---------- */
+/**
+ * Plans a two-day bike trip from a start location, using OpenRouteService.
+ * - Tries various bearings and distances to find a realistic route.
+ * - Falls back to a round-trip loop if point-to-point fails.
+ * - Returns route coordinates, day splits, and start/end points.
+ *
+ * Design decision: Uses randomization and multiple attempts for robustness.
+ */
 export async function planBikeTwoDays({ start }) {
   // Snap start to cycling network if possible
   let [sLon, sLat] = [start.lon, start.lat];
@@ -195,6 +236,12 @@ export async function planBikeTwoDays({ start }) {
 }
 
 /* ---------- TREK: single-day loop 5–15 km, start≈end ---------- */
+/**
+ * Plans a single-day trek (hiking) loop from a start location, using OpenRouteService.
+ * - Tries various loop lengths and random seeds to find a feasible route.
+ * - Ensures the loop closes visually (within 50 meters).
+ * - Returns route coordinates, day distance, and start/end points.
+ */
 export async function planTrekLoop({ start }) {
   let [sLon, sLat] = [start.lon, start.lat];
   const snappedStart = await getRoutablePoint(PROFILE.trek, sLon, sLat, [500, 1000, 2000, 5000]);
@@ -230,6 +277,10 @@ export async function planTrekLoop({ start }) {
 }
 
 /* ---------- router-facing wrapper ---------- */
+/**
+ * Router-facing wrapper for planning a route based on trip type.
+ * Delegates to the appropriate planner for 'bike' or 'trek'.
+ */
 export async function planRoute({ start, type }) {
   if (type === 'bike') return planBikeTwoDays({ start });
   if (type === 'trek') return planTrekLoop({ start });

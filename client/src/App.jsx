@@ -1,16 +1,18 @@
-import { Routes, Route, Link, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import api from './services/api'
-import ModernAuthPage from './pages/ModernAuthPage'
-import Planner from './pages/Planner'
-import History from './pages/History'
-import './styles/designSystem.css'
-
+/**
+ * App React component
+ * Handles authentication state, routing, and layout for the Travel Planner app.
+ * - Checks login status on mount and shows a loading spinner while authenticating.
+ * - If not logged in, shows the ModernAuthPage for login/register.
+ * - If logged in, shows the main app UI with navigation and routes.
+ *
+ * Design decision: Uses a loading state to prevent UI flicker and ensure a smooth user experience.
+ */
 export default function App(){
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const nav = useNavigate()
 
+  // On mount, check if the user is authenticated
   useEffect(() => {
     api.get('/auth/me')
       .then(r => setUser(r.data.user))
@@ -18,12 +20,17 @@ export default function App(){
       .finally(() => setLoading(false))
   }, [])
 
+  /**
+   * Logs the user out by calling the API and clearing user state.
+   * Navigates to the login page after logout.
+   */
   async function logout(){
     await api.post('/auth/logout')
     setUser(null)
     nav('/?mode=login')
   }
 
+  // Show a loading spinner while checking authentication
   if (loading) {
     return (
       <div style={{
@@ -84,6 +91,7 @@ export default function App(){
     return <ModernAuthPage setUser={setUser} />
   }
 
+  // Main app UI with navigation and routes
   return (
     <div className="container">
       <header className="topbar">

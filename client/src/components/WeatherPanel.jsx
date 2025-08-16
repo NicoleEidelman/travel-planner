@@ -24,7 +24,10 @@ export default function WeatherPanel({ lat, lon }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const [days, setDays] = useState([]);
-
+  /**
+   * Chip component
+   * Displays a small labeled value, used for weather metrics.
+   */
   const valid = useMemo(() => Number.isFinite(lat) && Number.isFinite(lon), [lat, lon]);
 
   async function fetchWeather() {
@@ -43,6 +46,15 @@ export default function WeatherPanel({ lat, lon }) {
         tmin: data.daily.temperature_2m_min?.[i],
         tmax: data.daily.temperature_2m_max?.[i],
         pop: data.daily.precipitation_probability_max?.[i], // %
+  /**
+   * WeatherPanel React component
+   * Fetches and displays a 3-day weather forecast for a given latitude and longitude.
+   * Uses Open-Meteo API (no API key required, but CORS is enforced).
+   * Shows loading, error, and no-data states. Weather is shown as a set of chips for each day.
+   *
+   * Design decision: Uses useMemo to validate coordinates and avoid unnecessary fetches.
+   * Fetches weather on mount and whenever coordinates change.
+   */
         wind: data.daily.windspeed_10m_max?.[i], // km/h
       })).slice(0, 3);
 
@@ -60,7 +72,7 @@ export default function WeatherPanel({ lat, lon }) {
   if (!valid) {
     return <div style={{ color: '#9ca3af', fontSize: '.95rem' }}>אין קואורדינטת התחלה להצגת מזג אוויר.</div>;
   }
-
+     // Open-Meteo API: free, no auth, but CORS is enforced
   return (
     <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>

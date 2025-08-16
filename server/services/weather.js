@@ -1,8 +1,16 @@
+
 import fetch from 'node-fetch';
 
+/**
+ * Formats a Date object as 'YYYY-MM-DD' for API requests.
+ */
 function dstr(d) { return d.toISOString().slice(0, 10); }
 
-// 3-day forecast starting TOMORROW; includes temps, precip prob, wind
+/**
+ * Fetches a 3-day weather forecast (starting tomorrow) for the given lat/lon using Open-Meteo API.
+ * Returns daily max/min temperature, precipitation probability, and wind speed.
+ * Design decision: Always starts forecast from tomorrow to avoid partial data for today.
+ */
 export async function getThreeDayForecast({ lat, lon }) {
   const today = new Date();
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);

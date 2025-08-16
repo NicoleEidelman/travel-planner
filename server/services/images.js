@@ -1,5 +1,16 @@
 // server/services/images.js
 // Returns URL for cover image without requiring API keys. Adds keywords, fixed size, and cache-busting.
+/**
+ * Returns a URL for a cover image from Unsplash, based on a label (e.g., city name).
+ * - No API key required; uses Unsplash's public featured endpoint.
+ * - Adds keywords, fixed size, and cache-busting signature.
+ * - Cleans up the label by mapping common Hebrew/non-Latin city names to English.
+ * - Design decision: Uses a mapping for known cities to improve image relevance.
+ *
+ * @param {string} label - City or place name
+ * @param {object} opts - Optional: topic (string), size (string)
+ * @returns {string} Unsplash image URL
+ */
 export function coverImageFor(label = '', opts = {}) {
   const base = String(label || '').trim();
   if (!base) return 'https://source.unsplash.com/featured/1200x630/?travel,city&sig=' + (Date.now() % 10000);
