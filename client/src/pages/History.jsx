@@ -1,14 +1,19 @@
-// client/src/pages/History.jsx
 import { useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
 import MapView from '../components/MapView';
 import WeatherPanel from '../components/WeatherPanel';
 
+/**
+ * History page
+ * - Lists user's saved trips
+ * - Shows selected trip on a map + compact stats + 3-day weather (by start point)
+ */
 export default function History({ user }) {
   const [list, setList] = useState([]);
   const [active, setActive] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Simple speed model (km/h) used for ETA calculation
   const speedKmh = (type) => (type === 'bike' ? 15 : 4);
 
   useEffect(() => {
@@ -31,18 +36,24 @@ export default function History({ user }) {
     }
   }
 
+  // Aggregate distance across dayDistances
   const totalKm = useMemo(() => {
     const arr = active?.dayDistances || [];
     return arr.reduce((s, n) => s + Number(n || 0), 0);
   }, [active]);
 
+  // Convert distance to minutes using the speed model above
   const totalMinutes = useMemo(() => {
     if (!active) return 0;
     const kmh = speedKmh(active.type);
     return kmh > 0 ? Math.round((totalKm / kmh) * 60) : 0;
   }, [active, totalKm]);
 
-  // lat/lon מנקודת ההתחלה (תומך גם ב-[lon,lat])
+  /**
+   * Extract starting lat/lon from the first coordinate.
+   * Accepts either [lat, lon] or [lon, lat]:
+   * - If |first| > 90 → assume [lon, lat] and swap.
+   */
   const startLL = useMemo(() => {
     const p = active?.coords?.[0];
     if (!Array.isArray(p) || p.length < 2) return null;
@@ -63,7 +74,7 @@ export default function History({ user }) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 20 }}>
-      {/* Sidebar: רשימת מסלולים */}
+      {/* Sidebar: saved trips list */}
       <aside
         className="card"
         style={{ padding: 16, alignSelf: 'start', position: 'sticky', top: 16, maxHeight: 'calc(100vh - 32px)', overflow: 'auto' }}
@@ -102,7 +113,7 @@ export default function History({ user }) {
         )}
       </aside>
 
-      {/* Main: מפה + פרטי מסלול */}
+      {/* Main: map + details */}
       <main className="card" style={{ padding: 16 }}>
         {active ? (
           <>
@@ -124,7 +135,7 @@ export default function History({ user }) {
               </div>
             </header>
 
-            {/* מפה */}
+            {/* Map */}
             <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #e5e7eb', marginBottom: 12 }}>
               <MapView
                 geojson={
@@ -140,16 +151,17 @@ export default function History({ user }) {
               />
             </div>
 
-            {/* מז״א */}
+            {/* Weather */}
             <div style={{ marginBottom: 12 }}>
               <WeatherPanel lat={startLL?.lat} lon={startLL?.lon} />
             </div>
 
-            {/* פרטים */}
+            {/* Description */}
             {active.description && (
               <p style={{ margin: '8px 0 16px', color: '#4b5563' }}>{active.description}</p>
             )}
 
+            {/* Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 10, marginBottom: 12 }}>
               <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, textAlign: 'center' }}>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{(active.dayDistances?.length || 0)}</div>
@@ -167,7 +179,7 @@ export default function History({ user }) {
               </div>
             </div>
 
-            {/* פירוט יומי */}
+            {/* Daily breakdown */}
             {Array.isArray(active.dayDistances) && active.dayDistances.length > 0 && (
               <>
                 <h4 style={{ margin: '12px 0 8px' }}>Daily breakdown</h4>

@@ -3,17 +3,24 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Login from './Login';
 import Register from './Register';
 
+/** Parse ?mode= from the URL (memoized) */
 function useQuery() {
   const { search } = useLocation();
   return useMemo(() => new URLSearchParams(search), [search]);
 }
 
+/**
+ * ModernAuthPage
+ * - Single shell hosting both Login and Register
+ * - URL-driven mode (?mode=login|register) with internal toggle
+ */
 function ModernAuthPage({ setUser }) {
   const navigate = useNavigate();
   const query = useQuery();
   const modeFromUrl = query.get('mode');
   const [isLogin, setIsLogin] = useState(true);
 
+  // Sync UI with URL param on mount and when it changes
   useEffect(() => {
     if (modeFromUrl === 'register') setIsLogin(false);
     else setIsLogin(true);
@@ -131,7 +138,7 @@ function ModernAuthPage({ setUser }) {
             </button>
           </div>
 
-          {/* Form Content */}
+          {/* Form Content (URL-driven, no remount bounce) */}
           <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
             {isLogin ? (
               <Login onLogin={(user) => {

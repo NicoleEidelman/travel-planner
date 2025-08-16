@@ -2,6 +2,12 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import api from '../services/api'
 
+/**
+ * Register page
+ * - Handles user sign-up flow
+ * - Shows live password-strength feedback
+ * - Calls /auth/register and redirects on success
+ */
 export default function Register({ onRegister }){
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -11,7 +17,15 @@ export default function Register({ onRegister }){
   const [showPassword, setShowPassword] = useState(false)
   const nav = useNavigate()
 
-  // Calculate password strength
+  /**
+   * Heuristic password strength meter.
+   * Each rule contributes 1 point (max 5).
+   * - Length >= 8
+   * - Lowercase
+   * - Uppercase
+   * - Digits
+   * - Symbols
+   */
   const getPasswordStrength = (pass) => {
     let strength = 0
     if (pass.length >= 8) strength++
@@ -26,6 +40,12 @@ export default function Register({ onRegister }){
   const strengthColors = ['#ef4444', '#f59e0b', '#f59e0b', '#10b981', '#059669']
   const strengthTexts = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong']
 
+  /**
+   * Submit registration form:
+   * - Optimistic UI flags (loading/err)
+   * - POST /auth/register
+   * - Call parent callback and navigate to home on success
+   */
   async function submit(e){
     e.preventDefault()
     setErr('')
@@ -229,7 +249,7 @@ export default function Register({ onRegister }){
             </button>
           </div>
 
-          {/* Password Strength Indicator */}
+          {/* Visual meter for the heuristic above */}
           {password && (
             <div style={{ marginTop: '12px' }}>
               <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>

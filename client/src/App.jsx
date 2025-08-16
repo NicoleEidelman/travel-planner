@@ -1,3 +1,11 @@
+import React, { useState, useEffect } from 'react'
+import { Routes, Route, Link, useNavigate } from 'react-router-dom'
+import api from './services/api'
+import ModernAuthPage from './pages/ModernAuthPage'
+import Planner from './pages/Planner'
+import History from './pages/History'
+import './styles/designSystem.css'
+
 /**
  * App React component
  * Handles authentication state, routing, and layout for the Travel Planner app.

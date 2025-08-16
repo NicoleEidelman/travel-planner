@@ -2,6 +2,11 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import api from '../services/api'
 
+/**
+ * Login page
+ * - Authenticates the user against /auth/login
+ * - Minimal UX sugar: loading state + show/hide password
+ */
 export default function Login({ onLogin }){
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -10,6 +15,11 @@ export default function Login({ onLogin }){
   const [showPassword, setShowPassword] = useState(false)
   const nav = useNavigate()
 
+  /**
+   * Submit login form:
+   * - POST /auth/login
+   * - Propagate user to parent and redirect on success
+   */
   async function submit(e){
     e.preventDefault()
     setErr('')
