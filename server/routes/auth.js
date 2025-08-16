@@ -2,6 +2,8 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import User from '../models/User.js';
 import { loginSchema, registerSchema } from '../utils/validate.js';
+import { generateToken } from '../utils/jwt.js';
+
 // This file handles user authentication routes for the Travel Planner MVP application.
 const router = express.Router();
 
@@ -12,8 +14,13 @@ router.post('/register', async (req, res) => {
     if (existing) return res.status(409).json({ message: 'Email already registered' });
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, passwordHash });
+
+    // Create session (existing functionality)
     req.session.user = { id: user._id, name: user.name, email: user.email };
-    res.status(201).json({ user: req.session.user });
+    
+    // BONUS: Add JWT token to response
+    const token = generateToken(user._id);
+    res.status(201).json({ user: req.session.user, token });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
@@ -24,8 +31,11 @@ router.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
+// Create session (existing functionality)
     req.session.user = { id: user._id, name: user.name, email: user.email };
-    res.json({ user: req.session.user });
+    // BONUS: Add JWT token to response
+    const token = generateToken(user._id);
+    res.json({ user: req.session.user, token });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 

@@ -1,118 +1,64 @@
-import { useEffect, useRef } from 'react';
+// client/src/components/MapView.jsx
+import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-export default function MapView({ coords = [], segments = [], dayDistances = [] }) {
-  const ref = useRef(null);
+// אם יש לך כבר תיקון לאייקונים (markerIcon וכו') עשי אותו בקובץ אב כללי פעם אחת.
+
+function toLatLng(pt) {
+ 
+  if (!Array.isArray(pt) || pt.length < 2) return null;
+  const [a, b] = pt.map(Number);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  
+  if (Math.abs(a) > 90) return [b, a];
+
+  return [a, b];
+}
+
+export default function MapView({ coords = [], geojson = null, color = '#667eea', height = 380 }) {
+  const divRef = useRef(null);
   const mapRef = useRef(null);
-  const drawn = useRef([]);
+  const fgRef = useRef(null);
 
   useEffect(() => {
-    if (!mapRef.current) {
-      mapRef.current = L.map(ref.current).setView([32.08, 34.78], 12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-        maxZoom: 19,
-        attribution: '© OpenStreetMap contributors'
+    if (!mapRef.current && divRef.current) {
+      mapRef.current = L.map(divRef.current, { zoomControl: true }).setView([31.7683, 35.2137], 7);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
       }).addTo(mapRef.current);
+      fgRef.current = L.featureGroup().addTo(mapRef.current);
     }
-    const map = mapRef.current;
+    return () => { /* לא הורסים כאן כדי לשמור state בעת רה-רנדר */ };
+  }, []);
 
-    // clear previous layers
-    drawn.current.forEach(l => map.removeLayer(l));
-    drawn.current = [];
+  useEffect(() => {
+    if (!mapRef.current || !fgRef.current) return;
+    fgRef.current.clearLayers();
 
-    const toLL = ([lon, lat]) => [lat, lon];
+    let added = false;
 
-    const segs = (segments?.length ? segments : [coords]).filter(Boolean);
-    const polys = segs.map((seg, i) => {
-      const color = i === 0 ? '#667eea' : '#764ba2';
-      const poly = L.polyline(seg.map(toLL), { 
-        weight: 4, 
-        color: color,
-        opacity: 0.8
-      }).addTo(map);
-      drawn.current.push(poly);
-      
-      if (dayDistances?.[i]) {
-        const mid = seg[Math.floor(seg.length/2)];
-        const label = `Day ${i+1}: ${dayDistances[i].toFixed(1)} km`;
-        const labelMarker = L.marker(toLL(mid), { opacity: 0.001 }).addTo(map)
-          .bindTooltip(label, { 
-            permanent: true, 
-            direction: 'center',
-            className: 'map-label'
-          });
-        drawn.current.push(labelMarker);
-      }
-      return poly;
-    });
-
-    if (coords?.length) {
-      const first = toLL(coords[0]);
-      const last  = toLL(coords[coords.length-1]);
-      
-      // Start marker
-      const startMarker = L.circleMarker(first, { 
-        radius: 8,
-        color: '#48bb78',
-        fillColor: '#48bb78',
-        fillOpacity: 0.8,
-        weight: 2
-      }).addTo(map)
-        .bindTooltip('Start', { 
-          permanent: true, 
-          offset: [0,-20],
-          className: 'map-label'
-        });
-      drawn.current.push(startMarker);
-      
-      const gap = map.distance(first, last);
-      if (gap > 10) {
-        // End marker (only if different from start)
-        const endMarker = L.circleMarker(last, { 
-          radius: 8,
-          color: '#f56565',
-          fillColor: '#f56565',
-          fillOpacity: 0.8,
-          weight: 2
-        }).addTo(map)
-          .bindTooltip('Finish', { 
-            permanent: true, 
-            offset: [0,-20],
-            className: 'map-label'
-          });
-        drawn.current.push(endMarker);
-      } else {
-        // Loop indicator
-        startMarker.bindTooltip('Start/Finish', { 
-          permanent: true, 
-          offset: [0,-20],
-          className: 'map-label'
-        });
+    if (geojson && geojson.type === 'LineString' && Array.isArray(geojson.coordinates)) {
+      // GeoJSON אמיתי – Leaflet כבר יודע שזה lon,lat
+      L.geoJSON(geojson, { style: { color, weight: 5, opacity: 0.9, lineCap: 'round' } }).addTo(fgRef.current);
+      added = true;
+    } else if (Array.isArray(coords) && coords.length) {
+      // מערך נקודות – ננרמל ל-[lat,lng] ונצייר Polyline
+      const latlngs = coords.map(toLatLng).filter(Boolean);
+      if (latlngs.length >= 2) {
+        L.polyline(latlngs, { color, weight: 5, opacity: 0.9, lineCap: 'round' }).addTo(fgRef.current);
+        added = true;
       }
     }
 
-    if (polys.length) {
-      const group = L.featureGroup(polys);
-      map.fitBounds(group.getBounds(), { padding: [20, 20] });
-      setTimeout(() => map.invalidateSize(), 100);
+    if (added) {
+      const bounds = fgRef.current.getBounds();
+      if (bounds && bounds.isValid()) {
+        mapRef.current.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
+      }
     }
+  }, [coords, geojson, color]);
 
-    // cleanup on unmount/change
-    return () => { 
-      drawn.current.forEach(l => map.removeLayer(l)); 
-      drawn.current = []; 
-    };
-  }, [coords, segments, dayDistances]);
-
-  return (
-    <div 
-      ref={ref} 
-      style={{ 
-        height: 400, 
-        width: '100%', 
-        borderRadius: 16,
-        border: 'none'
-      }} 
-    />
-  );
+  return <div ref={divRef} style={{ width: '100%', height }} />;
 }
